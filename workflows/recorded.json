@@ -1,0 +1,78 @@
+{
+  "name": "recorded_workflow",
+  "description": "",
+  "created_at": "2026-06-10T02:22:02.874350",
+  "parameters": {},
+  "steps": [
+    {
+      "id": "55544622",
+      "type": "navigate",
+      "instruction": "Navigate to https://www.linkedin.com/",
+      "command": null,
+      "url": "https://www.linkedin.com/",
+      "value": null,
+      "task": null,
+      "method": null,
+      "extract_instruction": null,
+      "extraction_format": null,
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "51040972",
+      "type": "click",
+      "instruction": "Click 'People'",
+      "command": "locator(\"li:nth-of-type(2) > a > icon > svg > path\")",
+      "url": null,
+      "value": null,
+      "task": null,
+      "method": null,
+      "extract_instruction": null,
+      "extraction_format": null,
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "b19faa51",
+      "type": "click",
+      "instruction": "Click 'First Name'",
+      "command": "get_by_role(\"searchbox\", name=\"First Name\")",
+      "url": null,
+      "value": null,
+      "task": null,
+      "method": null,
+      "extract_instruction": null,
+      "extraction_format": null,
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "bd21e077",
+      "type": "fill",
+      "instruction": "Fill 'First Name' with 'got it'",
+      "command": "get_by_role(\"searchbox\", name=\"First Name\")",
+      "url": null,
+      "value": "got it",
+      "task": null,
+      "method": null,
+      "extract_instruction": null,
+      "extraction_format": null,
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "dc4c427d",
+      "type": "click",
+      "instruction": "Click 'Search'",
+      "command": "get_by_role(\"button\", name=\"Search\")",
+      "url": null,
+      "value": null,
+      "task": null,
+      "method": null,
+      "extract_instruction": null,
+      "extraction_format": null,
+      "retry_count": 0,
+      "max_retries": 3
+    }
+  ]
+}

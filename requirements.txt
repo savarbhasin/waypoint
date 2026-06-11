@@ -1,0 +1,5 @@
+playwright
+browser-use
+anthropic
+python-dotenv
+pydantic
