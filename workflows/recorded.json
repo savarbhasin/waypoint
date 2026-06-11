@@ -1,78 +1,49 @@
 {
   "name": "recorded_workflow",
-  "description": "",
-  "created_at": "2026-06-10T02:22:02.874350",
-  "parameters": {},
+  "created_at": "2026-06-11T18:40:07.681199",
+  "description": "Navigates to GitHub Docs, switches to the Enterprise Cloud version, searches for SAML SSO authentication, and follows a result link to the GitHub Privacy Statement.",
   "steps": [
     {
-      "id": "55544622",
+      "id": 1,
       "type": "navigate",
-      "instruction": "Navigate to https://www.linkedin.com/",
-      "command": null,
-      "url": "https://www.linkedin.com/",
-      "value": null,
-      "task": null,
-      "method": null,
-      "extract_instruction": null,
-      "extraction_format": null,
-      "retry_count": 0,
-      "max_retries": 3
+      "instruction": "Navigate to the GitHub homepage.",
+      "url": "https://github.com/"
     },
     {
-      "id": "51040972",
+      "id": 2,
       "type": "click",
-      "instruction": "Click 'People'",
-      "command": "locator(\"li:nth-of-type(2) > a > icon > svg > path\")",
-      "url": null,
-      "value": null,
-      "task": null,
-      "method": null,
-      "extract_instruction": null,
-      "extraction_format": null,
-      "retry_count": 0,
-      "max_retries": 3
+      "instruction": "Click the Documentation link in the navigation menu.",
+      "command": "locator(\"xpath=/html/body/div/div[4]/header/div/div[2]/div/react-partial/div/nav/ul/li/div/div/ul/li[4]/div/ul/li[2]/a/span\")"
     },
     {
-      "id": "b19faa51",
+      "id": 3,
       "type": "click",
-      "instruction": "Click 'First Name'",
-      "command": "get_by_role(\"searchbox\", name=\"First Name\")",
-      "url": null,
-      "value": null,
-      "task": null,
-      "method": null,
-      "extract_instruction": null,
-      "extraction_format": null,
-      "retry_count": 0,
-      "max_retries": 3
+      "instruction": "Click the version picker to open documentation version options.",
+      "command": "locator(\"span.prc-Button-Label-FWkx3\")"
     },
     {
-      "id": "bd21e077",
-      "type": "fill",
-      "instruction": "Fill 'First Name' with 'got it'",
-      "command": "get_by_role(\"searchbox\", name=\"First Name\")",
-      "url": null,
-      "value": "got it",
-      "task": null,
-      "method": null,
-      "extract_instruction": null,
-      "extraction_format": null,
-      "retry_count": 0,
-      "max_retries": 3
-    },
-    {
-      "id": "dc4c427d",
+      "id": 4,
       "type": "click",
-      "instruction": "Click 'Search'",
-      "command": "get_by_role(\"button\", name=\"Search\")",
-      "url": null,
-      "value": null,
-      "task": null,
-      "method": null,
-      "extract_instruction": null,
-      "extraction_format": null,
-      "retry_count": 0,
-      "max_retries": 3
+      "instruction": "Select the Enterprise Cloud documentation version.",
+      "command": "get_by_test_id(\"version-picker-item\")"
+    },
+    {
+      "id": 5,
+      "type": "click",
+      "instruction": "Click the search field to open the search and Copilot interface.",
+      "command": "get_by_test_id(\"search\")"
+    },
+    {
+      "id": 6,
+      "type": "click",
+      "instruction": "Click the first AI-suggested search result for SAML SSO authentication.",
+      "command": "locator(\"#search-option-ai-0--label\")"
+    },
+    {
+      "id": 7,
+      "type": "click",
+      "instruction": "Click the GitHub Privacy Statement link.",
+      "command": "locator(\"xpath=/html/body/div[2]/div/div/div[2]/p/a/u\")"
     }
   ]
 }
