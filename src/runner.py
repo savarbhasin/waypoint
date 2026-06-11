@@ -1,8 +1,9 @@
 import asyncio
+import logging
 import subprocess
 import tempfile
 
-from browser_use import Agent
+from browser_use import Agent, ChatOpenAI
 from browser_use.browser.session import BrowserSession
 from playwright.async_api import Page, async_playwright
 
@@ -10,22 +11,26 @@ from src.extractor import run_extract
 from src.models import Workflow, WorkflowStep
 from src.utils import CDP_URL, find_chrome, wait_for_cdp, resolve_params, get_locator
 
+logger = logging.getLogger(__name__)
+
+browser_llm = ChatOpenAI(model="gpt-5.2", temperature=0.2)
 
 
-async def run_ai_with_retry(step: WorkflowStep, bu_session: BrowserSession, llm) -> None:
+
+async def run_ai_with_retry(step: WorkflowStep, bu_session: BrowserSession) -> None:
     task = step.task or step.instruction
     for attempt in range(1, 4):
         try:
-            agent = Agent(task=task, llm=llm, browser_session=bu_session)
+            agent = Agent(task=task, llm=browser_llm, browser_session=bu_session)
             history = await agent.run()
             done = history.is_done()
             if done and history.final_result():
-                print(f"  ✓ AI done: {history.final_result()}")
+                logger.info("AI done: %s", history.final_result())
             if done:
                 return
-            print(f"  ! AI attempt {attempt}: agent did not complete the task (max steps reached)")
+            logger.warning("AI attempt %d: agent did not complete the task (max steps reached)", attempt)
         except Exception as exc:
-            print(f"  ! AI attempt {attempt} failed: {exc}")
+            logger.warning("AI attempt %d failed: %s", attempt, exc)
         if attempt == 3:
             raise RuntimeError(f"AI step did not complete after 3 attempts: {task}")
         await asyncio.sleep(2)
@@ -35,13 +40,12 @@ async def run_playwright_with_fallback(
     step: WorkflowStep,
     page: Page,
     bu_session: BrowserSession,
-    llm,
     params: dict,
     retries: dict,
 ) -> None:
     if step.skip_command:
-        print("  ~ skip_command=true — going straight to AI")
-        await run_ai_with_retry(step, bu_session, llm)
+        logger.debug("skip_command=true — going straight to AI")
+        await run_ai_with_retry(step, bu_session)
         return
 
     while True:
@@ -73,14 +77,14 @@ async def run_playwright_with_fallback(
             retries[step.id] = retries.get(step.id, 0) + 1
             count = retries[step.id]
             if count >= step.max_retries:
-                print(f"  ! Failed {count}x — handing off to AI: {exc}")
-                await run_ai_with_retry(step, bu_session, llm)
+                logger.warning("Failed %dx — handing off to AI: %s", count, exc)
+                await run_ai_with_retry(step, bu_session)
                 return
-            print(f"  ! Attempt {count} failed: {exc}  (retrying in 1s)")
+            logger.warning("Attempt %d failed: %s  (retrying in 1s)", count, exc)
             await asyncio.sleep(1)
 
 
-async def run_workflow(workflow: Workflow, headless: bool = False, params: dict = {}, browser_llm=None) -> None:
+async def run_workflow(workflow: Workflow, headless: bool = False, params: dict = {}) -> None:
     missing = [p for p in workflow.parameters if p not in params]
     if missing:
         raise ValueError(f"Missing required parameters: {missing}")
@@ -104,27 +108,27 @@ async def run_workflow(workflow: Workflow, headless: bool = False, params: dict 
             context = browser.contexts[0] if browser.contexts else await browser.new_context()
             page = context.pages[0] if context.pages else await context.new_page()
 
-            bu_session = BrowserSession(cdp_url=CDP_URL, keep_alive=True, llm=browser_llm)
+            bu_session = BrowserSession(cdp_url=CDP_URL, keep_alive=True)
             await bu_session.start()
 
             retries: dict[str, int] = {}
             page = context.pages[-1] if context.pages else page
             for i, step in enumerate(workflow.steps):
-                print(f"\n[{i+1}/{len(workflow.steps)}] {step.type:8s}  {step.instruction}")
+                logger.info("[%d/%d] %-8s  %s", i + 1, len(workflow.steps), step.type, step.instruction)
 
                 if step.type == "wait":
                     await asyncio.sleep(step.duration)
 
                 elif step.type == "ai":
-                    await run_ai_with_retry(step, bu_session, browser_llm)
+                    await run_ai_with_retry(step, bu_session)
 
                 elif step.type == "extract":
                     await run_extract(step, page)
 
                 else:
-                    await run_playwright_with_fallback(step, page, bu_session, browser_llm, params, retries)
+                    await run_playwright_with_fallback(step, page, bu_session, params, retries)
 
-            print("\nWorkflow complete.")
+            logger.info("Workflow complete.")
             await bu_session.stop()
     finally:
         proc.terminate()

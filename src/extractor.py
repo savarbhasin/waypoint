@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 from typing import Any
 
@@ -8,6 +9,8 @@ from playwright.async_api import Page
 from src.ai.anthropic import anthropic
 from src.models import WorkflowStep
 from src.utils import load_extractor_fn, screenshot_b64, parse_llm_result
+
+logger = logging.getLogger(__name__)
 
 
 async def run_extract(step: WorkflowStep, page: Page) -> dict | str:
@@ -20,7 +23,7 @@ async def run_extract(step: WorkflowStep, page: Page) -> dict | str:
 
 async def extract_by_code_with_fallback(step: WorkflowStep, page: Page) -> dict | str:
     if not step.extractor_fn:
-        print("  [extract] method=code but no extractor_fn set — falling back to LLM")
+        logger.warning("method=code but no extractor_fn set — falling back to LLM")
         return await extract_by_llm(step, page, force_screenshot=True)
 
     fn = load_extractor_fn(step.extractor_fn)
@@ -30,15 +33,15 @@ async def extract_by_code_with_fallback(step: WorkflowStep, page: Page) -> dict 
         try:
             result = fn(html)
             if result is not None:
-                print(f"  [extract] code extraction succeeded (attempt {attempt})")
+                logger.info("code extraction succeeded (attempt %d)", attempt)
                 return result
-            print(f"  [extract] code attempt {attempt} returned None")
+            logger.warning("code attempt %d returned None", attempt)
         except Exception as exc:
-            print(f"  [extract] code attempt {attempt} raised: {exc}")
+            logger.warning("code attempt %d raised: %s", attempt, exc)
         if attempt < step.max_retries:
             await asyncio.sleep(1)
 
-    print("  [extract] code extraction failed — falling back to LLM (screenshot)")
+    logger.warning("code extraction failed — falling back to LLM (screenshot)")
     return await extract_by_llm(step, page, force_screenshot=True)
 
 

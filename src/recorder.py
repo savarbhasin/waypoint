@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import signal
 import time
 from pathlib import Path
@@ -6,6 +7,8 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 from src.models import Workflow, WorkflowStep
+
+logger = logging.getLogger(__name__)
 
 NAV_DEBOUNCE_AFTER_CLICK = 1.5
 
@@ -40,10 +43,10 @@ async def record(output_path: str, name: str = "recorded_workflow") -> None:
             for i in range(len(steps) - 1, -1, -1):
                 if steps[i].get("type") == "fill" and steps[i].get("command") == action.get("command"):
                     steps[i] = action
-                    print(f"  [{i+1:02d}] fill     (updated) {build_instruction(action)}")
+                    logger.info("[%02d] fill (updated) %s", i + 1, build_instruction(action))
                     return
         steps.append(action)
-        print(f"  [{len(steps):02d}] {action['type']:8s}  {build_instruction(action)}")
+        logger.info("[%02d] %-8s  %s", len(steps), action["type"], build_instruction(action))
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
@@ -76,13 +79,13 @@ async def record(output_path: str, name: str = "recorded_workflow") -> None:
                 return
             last_url = url
             steps.append({"type": "navigate", "url": url})
-            print(f"  [{len(steps):02d}] navigate  Navigate to {url}")
+            logger.info("[%02d] navigate  Navigate to %s", len(steps), url)
 
         page.on("framenavigated", on_frame_navigated)
         loop.add_signal_handler(signal.SIGINT, lambda: done.set())
 
-        print("\nBrowser is open. Perform your actions.")
-        print("Click '⏹ Stop Recording' in the browser, or press Ctrl+C to save.\n")
+        logger.info("Browser is open. Perform your actions.")
+        logger.info("Click '⏹ Stop Recording' in the browser, or press Ctrl+C to save.")
 
         await done.wait()
         loop.remove_signal_handler(signal.SIGINT)
@@ -103,4 +106,4 @@ async def record(output_path: str, name: str = "recorded_workflow") -> None:
         ))
 
     workflow.save(output_path)
-    print(f"\nSaved {len(workflow.steps)} steps to {output_path}")
+    logger.info("Saved %d steps to %s", len(workflow.steps), output_path)
