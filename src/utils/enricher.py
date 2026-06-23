@@ -20,7 +20,4 @@ async def enrich(workflow: Workflow, output_path: str) -> Workflow:
     response_text = re.sub(r'\s*```$', '', response_text)
 
     enriched = Workflow.model_validate(json.loads(response_text))
-    for i, step in enumerate(enriched.steps, start=1):
-        step.id = i
-
     enriched.save_to_file(output_path)

@@ -176,6 +176,14 @@
   }
 
   // ── Event listeners ───────────────────────────────────────────────────────
+  let scrollTimer = null;
+  window.addEventListener('scroll', function() {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function() {
+      window.__recordAction({ type: 'scroll', scroll_x: Math.round(window.scrollX), scroll_y: Math.round(window.scrollY) });
+    }, 500);
+  }, { passive: true });
+
   document.addEventListener('click', function(e) {
     const el = e.target;
     if (el.id === '__bap_stop') return;

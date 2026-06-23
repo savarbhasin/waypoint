@@ -6,12 +6,11 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-StepType = Literal["navigate", "click", "fill", "select", "ai", "extract", "wait"]
-ExtractMethod = Literal["code", "screenshot", "html", "llm"]
+StepType = Literal["navigate", "click", "fill", "select", "scroll", "ai", "extract", "wait"]
+ExtractMethod = Literal["selectors", "code", "screenshot", "html", "llm"]
 
 
 class WorkflowStep(BaseModel):
-    id: int = 0
     type: StepType
     instruction: str = ""
     command: Optional[str] = None
@@ -19,9 +18,12 @@ class WorkflowStep(BaseModel):
     value: Optional[str] = None
     task: Optional[str] = None
     method: Optional[ExtractMethod] = None
+    extraction_selectors: Optional[dict[str, str]] = None
     extractor_fn: Optional[str] = None
     extract_instruction: Optional[str] = None
     extraction_format: Optional[dict[str, Any]] = None
+    scroll_x: Optional[int] = None
+    scroll_y: Optional[int] = None
     sleep_before: float = 0
     duration: float = 0
     skip_command: bool = False
