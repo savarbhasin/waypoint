@@ -1,4 +1,4 @@
-# browser-ai-playwright
+# workflows
 
 AI-powered browser workflow recorder, enricher, and runner built on Playwright and browser-use.
 
