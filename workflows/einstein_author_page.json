@@ -1,0 +1,19 @@
+{
+  "name": "einstein_author_page",
+  "description": "Opens Quotes to Scrape and navigates to an author's details page by clicking the about link for a quote.",
+  "created_at": "2026-06-11T23:32:27.003919",
+  "steps": [
+    {
+      "id": 1,
+      "type": "navigate",
+      "instruction": "Open the Quotes to Scrape homepage.",
+      "url": "https://quotes.toscrape.com/"
+    },
+    {
+      "id": 2,
+      "type": "click",
+      "instruction": "Open the author details page from the quote by clicking the about link.",
+      "command": "get_by_role(\"link\", name=\"(about)\")"
+    }
+  ]
+}

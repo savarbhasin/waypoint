@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import subprocess
-import tempfile
 
 from browser_use import Agent, ChatOpenAI
 from browser_use.browser.session import BrowserSession
@@ -9,7 +8,7 @@ from playwright.async_api import Page, async_playwright
 
 from src.extractor import run_extract
 from src.models import Workflow, WorkflowStep
-from src.utils import CDP_URL, find_chrome, wait_for_cdp, resolve_params, get_locator
+from src.utils import CDP_URL, find_chrome, wait_for_cdp, resolve_params, get_locator, chrome_launch_args
 
 logger = logging.getLogger(__name__)
 
@@ -89,17 +88,7 @@ async def run_workflow(workflow: Workflow, headless: bool = False, params: dict 
     if missing:
         raise ValueError(f"Missing required parameters: {missing}")
 
-    chrome_args = [
-        find_chrome(),
-        "--remote-debugging-port=9222",
-        "--no-first-run",
-        "--no-default-browser-check",
-    ]
-    
-    if headless:
-        chrome_args.append("--headless=new")
-
-    proc = subprocess.Popen(chrome_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    proc = subprocess.Popen(chrome_launch_args(headless=headless), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     await wait_for_cdp()
 
     try:

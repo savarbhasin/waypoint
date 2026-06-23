@@ -5,8 +5,8 @@ import logging
 from pathlib import Path
 
 from dotenv import load_dotenv
-from browser_use import ChatAnthropic
 from utils.enricher import enrich
+from utils.params import parse_cli_params
 from models import Workflow
 from recorder import record
 from runner import run_workflow
@@ -42,22 +42,18 @@ async def main():
 
     if args.command == "record":
         Path(args.output).parent.mkdir(parents=True, exist_ok=True)
-        asyncio.run(record(output_path=args.output, name=args.name))
+        await record(output_path=args.output, name=args.name)
 
     elif args.command == "process":
         wf = Workflow.load(args.file)
         out = args.output or args.file
         logger.info(f"Enriching workflow: {wf.name!r}  ({len(wf.steps)} steps)")
- 
         await enrich(wf, out)
 
     elif args.command == "run":
         wf = Workflow.load(args.file)
-        cli_params = {}
-        for kv in (args.param or []):
-            k, _, v = kv.partition("=")
-            cli_params[k.strip()] = v.strip()
-        logger.info("Running workflow: %r  (%d steps)", wf.name, len(wf.steps))
+        cli_params = parse_cli_params(args.param)
+        logger.info(f"Running workflow: {wf.name!r}  ({len(wf.steps)} steps)")
         await run_workflow(wf, headless=args.headless, params=cli_params)
 
 

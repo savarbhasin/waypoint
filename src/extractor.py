@@ -1,8 +1,6 @@
 import asyncio
 import json
 import logging
-import re
-from typing import Any
 
 from playwright.async_api import Page
 
