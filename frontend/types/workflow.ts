@@ -24,6 +24,7 @@ export interface WorkflowStep {
 }
 
 export interface Workflow {
+  id: string;
   name: string;
   description: string;
   created_at: string;
@@ -43,7 +44,7 @@ export function makeStep(type: StepType): WorkflowStep {
   return { type, ...STEP_DEFAULTS };
 }
 
-export function makeWorkflow(name: string): Workflow {
+export function makeWorkflow(name: string): Omit<Workflow, "id"> {
   return {
     name,
     description: "",

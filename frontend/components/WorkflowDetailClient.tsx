@@ -5,21 +5,34 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Download, Trash2 } from "lucide-react";
 import { useWorkflowStore } from "@/store/useWorkflowStore";
-import { useRunSimulation } from "@/hooks/useRunSimulation";
+import { useWorkflowRun } from "@/hooks/useWorkflowRun";
 import { StepTimeline } from "@/components/StepTimeline";
 import { AddStepMenu } from "@/components/AddStepMenu";
 import { StepInspector } from "@/components/StepInspector";
 import { ParamsEditor } from "@/components/ParamsEditor";
 import { RunPanel } from "@/components/RunPanel";
+import { RunHistory } from "@/components/RunHistory";
+import { LiveView } from "@/components/LiveView";
 import { downloadWorkflow } from "@/lib/exportWorkflow";
+import { WorkflowApiError } from "@/lib/workflows/client";
 import { makeStep } from "@/types/workflow";
 import type { WorkflowStep } from "@/types/workflow";
 
-export function WorkflowDetailClient({ name }: { name: string }) {
-  const decodedName = decodeURIComponent(name);
+const EMPTY_WORKFLOW = {
+  id: "",
+  name: "",
+  description: "",
+  created_at: "",
+  parameters: [],
+  steps: [],
+};
+
+export function WorkflowDetailClient({ id }: { id: string }) {
   const router = useRouter();
 
-  const workflow = useWorkflowStore((s) => s.workflows.find((w) => w.name === decodedName));
+  const workflow = useWorkflowStore((s) => s.workflows.find((w) => w.id === id));
+  const unauthorized = useWorkflowStore((s) => s.unauthorized);
+  const fetchWorkflow = useWorkflowStore((s) => s.fetchWorkflow);
   const updateWorkflow = useWorkflowStore((s) => s.updateWorkflow);
   const renameWorkflow = useWorkflowStore((s) => s.renameWorkflow);
   const removeWorkflow = useWorkflowStore((s) => s.removeWorkflow);
@@ -32,24 +45,62 @@ export function WorkflowDetailClient({ name }: { name: string }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [tab, setTab] = useState<"inspect" | "run">("run");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [nameDraft, setNameDraft] = useState(decodedName);
-  const [hydrated, setHydrated] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  useEffect(() => setHydrated(true), []);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setNotFound(false);
+    fetchWorkflow(id)
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof WorkflowApiError && err.status === 404) setNotFound(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, fetchWorkflow]);
 
-  const sim = useRunSimulation(workflow ?? { name: "", description: "", created_at: "", parameters: [], steps: [] });
+  const run = useWorkflowRun(id, workflow ?? EMPTY_WORKFLOW);
 
-  useEffect(() => setNameDraft(decodedName), [decodedName]);
-  useEffect(() => setConfirmDelete(false), [decodedName]);
+  useEffect(() => {
+    if (workflow) setNameDraft(workflow.name);
+  }, [workflow?.name]);
+
+  useEffect(() => setConfirmDelete(false), [id]);
 
   const stepCount = workflow?.steps.length ?? 0;
   useEffect(() => {
     if (selected !== null && selected >= stepCount) setSelected(stepCount > 0 ? stepCount - 1 : null);
   }, [stepCount, selected]);
 
-  if (!hydrated) return null;
+  if (unauthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-fog">
+        <div className="text-center">
+          <p className="mb-4">Sign in to view this workflow.</p>
+          <Link href="/sign-in" className="text-amber hover:underline">
+            Sign in
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-  if (!workflow) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-fog text-sm">
+        Loading…
+      </div>
+    );
+  }
+
+  if (notFound || !workflow) {
     router.replace("/");
     return null;
   }
@@ -60,12 +111,11 @@ export function WorkflowDetailClient({ name }: { name: string }) {
       setNameDraft(workflow!.name);
       return;
     }
-    renameWorkflow(workflow!.name, clean);
-    router.replace(`/w/${encodeURIComponent(clean)}`);
+    renameWorkflow(workflow!.id, clean);
   }
 
   function handleAddStep(type: WorkflowStep["type"]) {
-    addStep(workflow!.name, makeStep(type));
+    addStep(workflow!.id, makeStep(type));
   }
 
   function handleSelect(i: number) {
@@ -77,7 +127,7 @@ export function WorkflowDetailClient({ name }: { name: string }) {
   const selectedStep = selected !== null ? workflow.steps[selected] : null;
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_380px] max-lg:flex max-lg:flex-col min-h-screen max-lg:min-h-screen h-screen max-lg:h-auto">
+    <div className="grid grid-cols-[minmax(0,1fr)_460px] max-lg:flex max-lg:flex-col min-h-screen max-lg:min-h-screen h-screen max-lg:h-auto">
       <div className="min-w-0 flex flex-col overflow-hidden max-lg:overflow-visible">
         <div className="px-6 pt-5 pb-4 border-b border-hairline shrink-0">
           <div className="flex items-center justify-between mb-3.5">
@@ -97,7 +147,7 @@ export function WorkflowDetailClient({ name }: { name: string }) {
                 <button
                   className="text-sm text-ember hover:bg-ember-dim px-3 py-1 rounded-md"
                   onClick={() => {
-                    removeWorkflow(workflow.name);
+                    removeWorkflow(workflow.id);
                     router.push("/");
                   }}
                 >
@@ -127,10 +177,10 @@ export function WorkflowDetailClient({ name }: { name: string }) {
             value={workflow.description}
             placeholder="What does this workflow do?"
             rows={1}
-            onChange={(e) => updateWorkflow(workflow.name, { description: e.target.value })}
+            onChange={(e) => updateWorkflow(workflow.id, { description: e.target.value })}
           />
 
-          <ParamsEditor params={workflow.parameters} onChange={(next) => updateWorkflow(workflow.name, { parameters: next })} />
+          <ParamsEditor params={workflow.parameters} onChange={(next) => updateWorkflow(workflow.id, { parameters: next })} />
 
           <div className="flex gap-4 mt-3.5 font-mono text-[0.6875rem] text-fog-dim uppercase tracking-wide">
             <span>{workflow.steps.length} steps</span>
@@ -142,12 +192,12 @@ export function WorkflowDetailClient({ name }: { name: string }) {
           <StepTimeline
             steps={workflow.steps}
             selected={selected}
-            statuses={sim.statuses}
+            statuses={run.statuses}
             onSelect={handleSelect}
-            onRemove={(i) => removeStep(workflow.name, i)}
-            onDuplicate={(i) => duplicateStep(workflow.name, i)}
-            onMoveUp={(i) => i > 0 && moveStep(workflow.name, i, i - 1)}
-            onMoveDown={(i) => i < workflow.steps.length - 1 && moveStep(workflow.name, i, i + 1)}
+            onRemove={(i) => removeStep(workflow.id, i)}
+            onDuplicate={(i) => duplicateStep(workflow.id, i)}
+            onMoveUp={(i) => i > 0 && moveStep(workflow.id, i, i - 1)}
+            onMoveDown={(i) => i < workflow.steps.length - 1 && moveStep(workflow.id, i, i + 1)}
           />
           <AddStepMenu onAdd={handleAddStep} />
         </div>
@@ -174,7 +224,7 @@ export function WorkflowDetailClient({ name }: { name: string }) {
               step={selectedStep}
               index={selected!}
               total={workflow.steps.length}
-              onChange={(patch) => updateStep(workflow.name, selected!, patch)}
+              onChange={(patch) => updateStep(workflow.id, selected!, patch)}
             />
           ) : (
             <p className="px-6 py-10 text-fog-dim text-sm text-center">
@@ -184,14 +234,16 @@ export function WorkflowDetailClient({ name }: { name: string }) {
         </div>
 
         <div className={`flex-1 min-h-0 overflow-y-auto flex flex-col ${tab === "run" ? "" : "hidden"}`}>
+          <LiveView frame={run.latestFrame} running={run.running} />
           <RunPanel
             workflow={workflow}
-            running={sim.running}
-            missing={sim.missing}
-            lines={sim.lines}
-            onStart={sim.start}
-            onStop={sim.stop}
+            running={run.running}
+            missing={run.missing}
+            lines={run.lines}
+            onStart={run.start}
+            onStop={run.stop}
           />
+          <RunHistory workflowId={workflow.id} running={run.running} />
         </div>
       </div>
     </div>

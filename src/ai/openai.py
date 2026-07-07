@@ -16,4 +16,21 @@ class OpenAIClient:
         )
         return response.output_text.strip()
 
+    async def complete(self, prompt: str) -> str:
+        response = await self._client.responses.create(model=self.MODEL, input=prompt)
+        return response.output_text.strip()
+
+    async def vision(self, image_b64: str, prompt: str) -> str:
+        response = await self._client.responses.create(
+            model=self.MODEL,
+            input=[{
+                "role": "user",
+                "content": [
+                    {"type": "input_text", "text": prompt},
+                    {"type": "input_image", "image_url": f"data:image/png;base64,{image_b64}"},
+                ],
+            }],
+        )
+        return response.output_text.strip()
+
 openai = OpenAIClient()

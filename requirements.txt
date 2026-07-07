@@ -3,3 +3,5 @@ browser-use
 anthropic
 python-dotenv
 pydantic
+fastapi
+uvicorn[standard]

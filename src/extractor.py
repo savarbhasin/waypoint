@@ -4,7 +4,7 @@ import logging
 
 from playwright.async_api import Page
 
-from src.ai.anthropic import anthropic
+from src.ai.openai import openai as extraction_llm
 from src.models import WorkflowStep
 from src.utils import load_extractor_fn, screenshot_b64, parse_llm_result
 
@@ -72,9 +72,9 @@ async def extract_by_llm(step: WorkflowStep, page: Page, force_screenshot: bool 
 
     if method == "html":
         html = await page.content()
-        raw = await anthropic.complete(f"{instruction}{schema_directive}\n\n```html\n{html}\n```")
+        raw = await extraction_llm.complete(f"{instruction}{schema_directive}\n\n```html\n{html}\n```")
     else:
         b64 = await screenshot_b64(page)
-        raw = await anthropic.vision(b64, f"{instruction}{schema_directive}")
+        raw = await extraction_llm.vision(b64, f"{instruction}{schema_directive}")
 
     return parse_llm_result(raw, step.extraction_format)
