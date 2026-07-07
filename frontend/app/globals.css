@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-ink: #0d1512;
+  --color-ink-raised: #121b17;
+  --color-panel: #16211c;
+  --color-panel-raised: #1c2922;
+  --color-hairline: rgba(237, 239, 233, 0.09);
+  --color-hairline-strong: rgba(237, 239, 233, 0.16);
+  --color-paper: #edefe9;
+  --color-paper-dim: #c7cec5;
+  --color-fog: #8ea297;
+  --color-fog-dim: #5b6d63;
+  --color-moss: #58a67e;
+  --color-moss-dim: rgba(88, 166, 126, 0.16);
+  --color-amber: #e8a23e;
+  --color-amber-dim: rgba(232, 162, 62, 0.16);
+  --color-ember: #e2685a;
+  --color-ember-dim: rgba(226, 104, 90, 0.16);
+  --color-signal: #6fb8c9;
+  --color-signal-dim: rgba(111, 184, 201, 0.14);
+
+  --font-display: var(--font-instrument-serif), "Iowan Old Style", serif;
+  --font-body: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(ellipse 900px 500px at 12% -10%, rgba(111, 184, 201, 0.06), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(232, 162, 62, 0.05), transparent 55%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: var(--color-signal-dim);
+  color: var(--color-paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
