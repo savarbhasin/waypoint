@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1783440220963,
+      "tag": "0000_past_chronomancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783440534998,
+      "tag": "0001_worthless_caretaker",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783441000000,
+      "tag": "0002_api_tokens_token_hash_idx",
+      "breakpoints": true
+    }
+  ]
+}

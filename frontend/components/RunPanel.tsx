@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Square } from "lucide-react";
 import type { Workflow } from "@/types/workflow";
-import type { RunLine } from "@/hooks/useRunSimulation";
+import type { RunLine } from "@/hooks/useWorkflowRun";
 
 const TONE_COLORS: Record<string, string> = {
   success: "text-moss",
@@ -75,18 +75,17 @@ export function RunPanel({
             onClick={() => onStart(values)}
           >
             <Play size={13} />
-            Run preview
+            Run
           </button>
         )}
       </div>
 
       <div className="flex items-baseline justify-between px-5 py-2.5 border-t border-hairline shrink-0">
         <span className="font-mono text-[0.6875rem] uppercase tracking-widest text-fog">Flight log</span>
-        <span className="text-[0.6875rem] text-fog-dim">dry run</span>
       </div>
       <div ref={consoleRef} className="flex-1 min-h-[160px] overflow-y-auto px-5 pb-5 font-mono text-xs leading-relaxed">
         {lines.length === 0 ? (
-          <p className="text-fog-dim text-xs">Nothing yet — run a preview to see the replay decision for every step.</p>
+          <p className="text-fog-dim text-xs">Nothing yet — run the workflow to see the outcome of every step.</p>
         ) : (
           lines.map((l, i) => (
             <div key={i} className={`whitespace-pre-wrap break-words ${TONE_COLORS[l.tone] ?? "text-fog"}`}>
