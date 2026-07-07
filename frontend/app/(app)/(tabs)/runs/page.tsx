@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { RunListSkeleton } from "@/components/Skeleton";
 import type { RunEvent } from "@/lib/runs/types";
 import { formatRunEventLine, type RunLine } from "@/hooks/useWorkflowRun";
 import { listWorkflows } from "@/lib/workflows/client";
@@ -246,7 +247,7 @@ export default function RunsPage() {
       </div>
 
       {loading ? (
-        <p className="text-fog text-sm font-mono">Loading…</p>
+        <RunListSkeleton count={6} />
       ) : runs.length === 0 ? (
         <div className="border border-dashed border-hairline-strong rounded-lg py-12 px-8 text-center text-fog">
           {hasActiveFilters ? (

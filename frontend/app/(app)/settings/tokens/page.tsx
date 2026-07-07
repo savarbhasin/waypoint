@@ -107,37 +107,35 @@ export default function TokensSettingsPage() {
         </div>
       )}
 
-      <div className="border border-hairline-strong bg-panel rounded-lg p-6 mb-8">
-        <button
-          type="button"
-          disabled={generating}
-          onClick={handleGenerate}
-          className="text-sm font-medium px-4 py-2.5 bg-amber border border-amber text-[#1a1206] rounded-md hover:bg-[#f0ac4c] disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {generating ? "Generating…" : "Generate new token"}
-        </button>
+      <button
+        type="button"
+        disabled={generating}
+        onClick={handleGenerate}
+        className="mb-8 text-sm font-medium px-4 py-2.5 bg-amber border border-amber text-[#1a1206] rounded-md hover:bg-[#f0ac4c] disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {generating ? "Generating…" : "Generate new token"}
+      </button>
 
-        {newToken && (
-          <div className="mt-6 border border-amber/40 bg-amber-dim rounded-md p-4">
-            <p className="text-sm text-paper mb-3 font-medium">
-              Copy this token now — you won&apos;t be able to see it again.
-            </p>
-            <div className="flex gap-2">
-              <code className="flex-1 font-mono text-xs bg-ink-raised border border-hairline-strong rounded-md px-3 py-2.5 text-paper break-all">
-                {newToken}
-              </code>
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="shrink-0 text-sm font-medium px-3 py-2 bg-panel-raised border border-hairline-strong text-paper rounded-md inline-flex items-center gap-1.5 hover:border-fog"
-              >
-                <Copy size={14} />
-                {copied ? "Copied" : "Copy"}
-              </button>
-            </div>
+      {newToken && (
+        <div className="mb-8 border border-amber/40 bg-amber-dim rounded-md p-4">
+          <p className="text-sm text-paper mb-3 font-medium">
+            Copy this token now — you won&apos;t be able to see it again.
+          </p>
+          <div className="flex gap-2">
+            <code className="flex-1 font-mono text-xs bg-ink-raised border border-hairline-strong rounded-md px-3 py-2.5 text-paper break-all">
+              {newToken}
+            </code>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="shrink-0 text-sm font-medium px-3 py-2 bg-panel-raised border border-hairline-strong text-paper rounded-md inline-flex items-center gap-1.5 hover:border-fog"
+            >
+              <Copy size={14} />
+              {copied ? "Copied" : "Copy"}
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="border border-hairline-strong bg-panel rounded-lg overflow-hidden">
         <div className="px-5 py-3 border-b border-hairline font-mono text-[0.6875rem] uppercase tracking-widest text-fog">

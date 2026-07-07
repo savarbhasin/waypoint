@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search } from "lucide-react";
+import { WorkflowCardGridSkeleton } from "@/components/Skeleton";
 import { WorkflowCard } from "@/components/WorkflowCard";
 import type { WorkflowCardStats } from "@/components/WorkflowCard";
 import { NewWorkflowDialog } from "@/components/NewWorkflowDialog";
@@ -198,7 +199,7 @@ export default function WorkflowsPage() {
       )}
 
       {!initialized || loading ? (
-        <p className="text-fog text-sm">Loading…</p>
+        <WorkflowCardGridSkeleton count={6} />
       ) : workflows.length === 0 ? (
         <div className="border border-dashed border-hairline-strong rounded-lg py-12 px-8 text-center text-fog">
           No workflows yet. Record one with the CLI, or create one here.

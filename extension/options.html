@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waypoint Recorder — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      max-width: 480px;
+      margin: 40px auto;
+      padding: 0 24px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      color: #edefe9;
+      background: #0d1512;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: #8ea297;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      color: #8ea297;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid rgba(237, 239, 233, 0.16);
+      border-radius: 6px;
+      background: #16211c;
+      color: #edefe9;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    input:focus {
+      outline: 2px solid #6fb8c9;
+      outline-offset: 1px;
+    }
+    button {
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: #e8a23e;
+      color: #1a1206;
+    }
+    button:hover { background: #f0ac4c; }
+    .hint {
+      font-size: 12px;
+      color: #5b6d63;
+      margin-bottom: 20px;
+      line-height: 1.45;
+    }
+    .status {
+      margin-top: 16px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: none;
+    }
+    .status.success {
+      display: block;
+      border: 1px solid rgba(88, 166, 126, 0.4);
+      color: #58a67e;
+      background: rgba(88, 166, 126, 0.1);
+    }
+    .status.error {
+      display: block;
+      border: 1px solid rgba(226, 104, 90, 0.4);
+      color: #e2685a;
+      background: rgba(226, 104, 90, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Waypoint Recorder</h1>
+  <div class="subtitle">Extension settings</div>
+
+  <p class="hint">Set the base URL of your Waypoint web app. The extension uses this for importing workflows and opening token settings.</p>
+
+  <label for="web-app-url">App base URL</label>
+  <input type="url" id="web-app-url" placeholder="http://localhost:3000">
+
+  <button id="save">Save</button>
+  <div id="status" class="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

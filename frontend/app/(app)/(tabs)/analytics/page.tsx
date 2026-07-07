@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  AnalyticsPageSkeleton,
+  AnalyticsStatsStripSkeleton,
+} from "@/components/Skeleton";
 import type { AnalyticsSummary, DailyActivity } from "@/lib/analytics/api";
 
 type RangeDays = 30 | 90;
@@ -82,25 +86,19 @@ function StatsStrip({
   loading: boolean;
   summary: AnalyticsSummary | null;
 }) {
-  const dim = loading || !summary;
+  if (loading || !summary) {
+    return <AnalyticsStatsStripSkeleton />;
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-y-1 font-mono text-[0.6875rem] tabular-nums text-paper border border-hairline rounded-sm px-4 py-2.5">
-      <span className={dim ? "text-fog-dim" : undefined}>
-        Total runs: {dim ? "—" : summary.totalRuns}
-      </span>
+      <span>Total runs: {summary.totalRuns}</span>
       <span className="mx-3 text-hairline-strong select-none">·</span>
-      <span className={dim ? "text-fog-dim" : undefined}>
-        Success rate: {dim ? "—" : formatRate(summary.overallSuccessRate)}
-      </span>
+      <span>Success rate: {formatRate(summary.overallSuccessRate)}</span>
       <span className="mx-3 text-hairline-strong select-none">·</span>
-      <span className={dim ? "text-fog-dim" : undefined}>
-        Avg duration: {dim ? "—" : formatAvgDuration(summary.avgDurationMs)}
-      </span>
+      <span>Avg duration: {formatAvgDuration(summary.avgDurationMs)}</span>
       <span className="mx-3 text-hairline-strong select-none">·</span>
-      <span className={dim ? "text-fog-dim" : undefined}>
-        Heal rate: {dim ? "—" : formatRate(summary.healRate)}
-      </span>
+      <span>Heal rate: {formatRate(summary.healRate)}</span>
     </div>
   );
 }
@@ -227,7 +225,7 @@ export default function AnalyticsPage() {
       </div>
 
       {loading ? (
-        <p className="text-fog-dim text-xs font-mono">Loading…</p>
+        <AnalyticsPageSkeleton rangeDays={rangeDays} />
       ) : isEmpty ? (
         <div className="border border-dashed border-hairline-strong rounded-lg py-12 px-8 text-center text-fog">
           No runs in the last {rangeDays} days yet.

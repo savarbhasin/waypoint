@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waypoint Recorder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      color: #edefe9;
+      background: #0d1512;
+      padding: 16px;
+    }
+    h1 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #edefe9;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: #8ea297;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      color: #8ea297;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid rgba(237, 239, 233, 0.16);
+      border-radius: 6px;
+      background: #16211c;
+      color: #edefe9;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    input:focus {
+      outline: 2px solid #6fb8c9;
+      outline-offset: 1px;
+    }
+    button {
+      width: 100%;
+      padding: 9px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      margin-bottom: 8px;
+    }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-primary {
+      background: #e8a23e;
+      color: #1a1206;
+    }
+    .btn-primary:hover:not(:disabled) { background: #f0ac4c; }
+    .btn-secondary {
+      background: #1c2922;
+      color: #edefe9;
+      border: 1px solid rgba(237, 239, 233, 0.16);
+    }
+    .btn-secondary:hover:not(:disabled) { border-color: #8ea297; }
+    .btn-danger {
+      background: transparent;
+      color: #e2685a;
+      border: 1px solid rgba(226, 104, 90, 0.4);
+    }
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.45;
+      background: #16211c;
+      border: 1px solid rgba(237, 239, 233, 0.09);
+      color: #c7cec5;
+      word-break: break-word;
+    }
+    .status.success { border-color: rgba(88, 166, 126, 0.4); color: #58a67e; }
+    .status.error { border-color: rgba(226, 104, 90, 0.4); color: #e2685a; }
+    .status.recording { border-color: rgba(232, 162, 62, 0.4); color: #e8a23e; }
+    .signed-in {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding: 8px 10px;
+      background: rgba(88, 166, 126, 0.12);
+      border: 1px solid rgba(88, 166, 126, 0.3);
+      border-radius: 6px;
+      font-size: 12px;
+      color: #58a67e;
+    }
+    .hint {
+      font-size: 11px;
+      color: #5b6d63;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    a { color: #6fb8c9; }
+    .hidden { display: none; }
+    .row { display: flex; gap: 8px; }
+    .row button { flex: 1; }
+  </style>
+</head>
+<body>
+  <h1>Waypoint Recorder</h1>
+  <div class="subtitle">Browser workflow capture</div>
+
+  <div id="connect-view">
+    <p class="hint">Connect your Waypoint account to save recordings.</p>
+    <button class="btn-secondary" id="open-tokens">Open token settings</button>
+    <label for="token-input">Paste access token</label>
+    <input type="password" id="token-input" placeholder="wp_…" autocomplete="off">
+    <button class="btn-primary" id="save-token">Connect</button>
+    <div id="connect-status" class="status hidden"></div>
+  </div>
+
+  <div id="record-view" class="hidden">
+    <div class="signed-in">
+      <span>Signed in</span>
+      <button class="btn-danger" id="sign-out" style="width:auto;padding:4px 10px;margin:0;font-size:11px;">Sign out</button>
+    </div>
+    <label for="workflow-name">Workflow name</label>
+    <input type="text" id="workflow-name" value="recorded_workflow" placeholder="my_workflow">
+    <div class="row">
+      <button class="btn-primary" id="toggle-recording">Start recording</button>
+    </div>
+    <div id="status" class="status hidden"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

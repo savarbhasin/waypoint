@@ -4,6 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import {
+  ActivitySparkbarSkeleton,
+  RunningRunSkeleton,
+  StatusStripSkeleton,
+  WorkflowCardGridSkeleton,
+} from "@/components/Skeleton";
 import { WorkflowCard } from "@/components/WorkflowCard";
 import { NewWorkflowDialog } from "@/components/NewWorkflowDialog";
 import { StatusPip } from "@/components/StatusPip";
@@ -144,25 +150,21 @@ function StatusStrip({
   loading: boolean;
   stats: DashboardSummary["stats"] | null;
 }) {
-  const dim = loading || !stats;
+  if (loading || !stats) {
+    return <StatusStripSkeleton segments={4} />;
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-y-1 font-mono text-[0.6875rem] tabular-nums text-paper border border-hairline rounded-sm px-4 py-2.5 mb-10">
-      <span className={dim ? "text-fog-dim" : undefined}>
-        Running: {dim ? "—" : stats.runningCount}
+      <span>Running: {stats.runningCount}</span>
+      <span className="mx-3 text-hairline-strong select-none">·</span>
+      <span>Today: {stats.runsToday}</span>
+      <span className="mx-3 text-hairline-strong select-none">·</span>
+      <span>
+        7d success: {stats.successRate7d !== null ? `${stats.successRate7d}%` : "—"}
       </span>
       <span className="mx-3 text-hairline-strong select-none">·</span>
-      <span className={dim ? "text-fog-dim" : undefined}>
-        Today: {dim ? "—" : stats.runsToday}
-      </span>
-      <span className="mx-3 text-hairline-strong select-none">·</span>
-      <span className={dim ? "text-fog-dim" : undefined}>
-        7d success: {dim ? "—" : stats.successRate7d !== null ? `${stats.successRate7d}%` : "—"}
-      </span>
-      <span className="mx-3 text-hairline-strong select-none">·</span>
-      <span className={dim ? "text-fog-dim" : undefined}>
-        Workflows: {dim ? "—" : stats.workflowCount}
-      </span>
+      <span>Workflows: {stats.workflowCount}</span>
     </div>
   );
 }
@@ -330,7 +332,13 @@ export default function DashboardPage() {
         </div>
 
         {runningLoading ? (
-          <p className="text-fog-dim text-xs">Loading…</p>
+          <ul className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <li key={i}>
+                <RunningRunSkeleton />
+              </li>
+            ))}
+          </ul>
         ) : runningRuns.length === 0 ? (
           <p className="text-fog-dim text-xs">Nothing running right now.</p>
         ) : (
@@ -437,11 +445,7 @@ export default function DashboardPage() {
           </div>
         </div>
         {summaryLoading || !summary ? (
-          <div className="flex items-end gap-[3px] h-14">
-            {Array.from({ length: 14 }).map((_, i) => (
-              <div key={i} className="flex-1 h-0.5 bg-hairline rounded-sm" />
-            ))}
-          </div>
+          <ActivitySparkbarSkeleton bars={14} />
         ) : (
           <ActivitySparkbar activity={summary.activity} />
         )}
@@ -466,7 +470,7 @@ export default function DashboardPage() {
         </div>
 
         {!initialized || loading ? (
-          <p className="text-fog text-sm">Loading…</p>
+          <WorkflowCardGridSkeleton count={6} />
         ) : workflows.length === 0 ? (
           <div className="border border-dashed border-hairline-strong rounded-lg py-12 px-8 text-center text-fog">
             No workflows yet. Record one with the CLI, or create one here.

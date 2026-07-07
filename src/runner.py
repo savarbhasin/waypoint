@@ -2,15 +2,19 @@ import asyncio
 import json
 import logging
 import subprocess
+import uuid
+from typing import Any
 
 from browser_use import Agent, ChatOpenAI
 from browser_use.browser.session import BrowserSession
-from playwright.async_api import Page, async_playwright
+from playwright.async_api import async_playwright
 from pydantic import BaseModel
 
+from src.events import EventEmitter, RunEvent
 from src.extractor import run_extract
 from src.models import Workflow, WorkflowStep
-from src.utils import CDP_URL, wait_for_cdp, resolve_params, get_locator, chrome_launch_args
+from src.tabs import PageTracker
+from src.utils import CDP_PORT, wait_for_cdp, resolve_params, get_locator, chrome_launch_args
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +23,14 @@ browser_llm = ChatOpenAI(model="gpt-5.2", temperature=0.2)
 
 class HealedSelector(BaseModel):
     command: str
+
+
+async def noop_on_event(event: RunEvent) -> None:
+    pass
+
+
+async def _emit(on_event: EventEmitter, run_id: str, **kwargs: Any) -> None:
+    await on_event(RunEvent(run_id=run_id, **kwargs))
 
 
 def _patch_step_command(workflow_path: str, idx: int, command: str) -> None:
@@ -38,10 +50,10 @@ async def run_ai_with_retry(step: WorkflowStep, bu_session: BrowserSession) -> s
     )
     for attempt in range(1, 4):
         try:
-            agent = Agent(task=task, llm=browser_llm, browser_session=bu_session, output_model=HealedSelector)
+            agent = Agent(task=task, llm=browser_llm, browser_session=bu_session, output_model_schema=HealedSelector)
             history = await agent.run()
             if history.is_done():
-                result: HealedSelector = history.final_result()
+                result: HealedSelector | None = history.structured_output
                 if result and result.command:
                     logger.info("AI healed selector: %s", result.command)
                     return result.command
@@ -58,7 +70,7 @@ async def run_ai_with_retry(step: WorkflowStep, bu_session: BrowserSession) -> s
 async def run_playwright_with_fallback(
     step: WorkflowStep,
     idx: int,
-    page: Page,
+    tracker: PageTracker,
     bu_session: BrowserSession,
     params: dict,
     retries: dict,
@@ -69,6 +81,7 @@ async def run_playwright_with_fallback(
         return None
 
     while True:
+        page = tracker.page  # re-read every attempt — a prior attempt may have opened a new tab
         try:
             if step.type == "navigate":
                 await page.goto(resolve_params(step.url or "", params), wait_until="domcontentloaded")
@@ -112,46 +125,109 @@ async def run_workflow(
     headless: bool = False,
     params: dict | None = None,
     workflow_path: str | None = None,
+    on_event: EventEmitter | None = None,
+    run_id: str | None = None,
+    port: int | None = None,
+    profile_dir: str | None = None,
 ) -> None:
     if params is None:
         params = {}
+    if on_event is None:
+        on_event = noop_on_event
+    if run_id is None:
+        run_id = str(uuid.uuid4())
+
     missing = [p for p in workflow.parameters if p not in params]
     if missing:
         raise ValueError(f"Missing required parameters: {missing}")
 
-    proc = subprocess.Popen(chrome_launch_args(headless=headless), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    await wait_for_cdp()
+    cdp_url = f"http://127.0.0.1:{port if port is not None else CDP_PORT}"
+    proc = subprocess.Popen(
+        chrome_launch_args(headless=headless, port=port, profile_dir=profile_dir),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    await wait_for_cdp(port=port)
 
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.connect_over_cdp(CDP_URL)
+            browser = await p.chromium.connect_over_cdp(cdp_url)
             context = browser.contexts[0] if browser.contexts else await browser.new_context()
             page = context.pages[-1] if context.pages else await context.new_page()
+            tracker = PageTracker(context, page)
 
-            bu_session = BrowserSession(cdp_url=CDP_URL, keep_alive=True)
+            bu_session = BrowserSession(cdp_url=cdp_url, keep_alive=True)
             await bu_session.start()
 
-            retries: dict[int, int] = {}
-            for i, step in enumerate(workflow.steps):
-                logger.info("[%d/%d] %-8s  %s", i + 1, len(workflow.steps), step.type, step.instruction)
+            await _emit(on_event, run_id, type="run_started")
 
-                if step.type == "wait":
-                    await asyncio.sleep(step.duration)
+            try:
+                extract_results: list[Any] = []
+                retries: dict[int, int] = {}
+                for i, step in enumerate(workflow.steps):
+                    logger.info("[%d/%d] %-8s  %s", i + 1, len(workflow.steps), step.type, step.instruction)
+                    await _emit(
+                        on_event, run_id,
+                        type="step_started", step_index=i, step_type=step.type, message=step.instruction,
+                        data={"instruction": step.instruction},
+                    )
 
-                elif step.type == "ai":
-                    await run_ai_with_retry(step, bu_session)
+                    try:
+                        if step.type == "wait":
+                            await asyncio.sleep(step.duration)
+                            await _emit(on_event, run_id, type="step_succeeded", step_index=i, step_type=step.type)
 
-                elif step.type == "extract":
-                    await run_extract(step, page)
+                        elif step.type == "ai":
+                            healed = await run_ai_with_retry(step, bu_session)
+                            if healed:
+                                await _emit(
+                                    on_event, run_id,
+                                    type="step_healed", step_index=i, step_type=step.type,
+                                    data={"command": healed},
+                                )
+                            else:
+                                await _emit(on_event, run_id, type="step_succeeded", step_index=i, step_type=step.type)
 
-                else:
-                    healed = await run_playwright_with_fallback(step, i, page, bu_session, params, retries)
-                    if healed and workflow_path:
-                        _patch_step_command(workflow_path, i, healed)
-                        step.command = healed
+                        elif step.type == "extract":
+                            result = await run_extract(step, tracker.page)
+                            extract_results.append(result)
+                            await _emit(
+                                on_event, run_id,
+                                type="extract_result", step_index=i, step_type=step.type,
+                                data={"result": result},
+                            )
+                            await _emit(on_event, run_id, type="step_succeeded", step_index=i, step_type=step.type)
 
-            logger.info("Workflow complete.")
-            await bu_session.stop()
+                        else:
+                            healed = await run_playwright_with_fallback(step, i, tracker, bu_session, params, retries)
+                            if healed and workflow_path:
+                                _patch_step_command(workflow_path, i, healed)
+                                step.command = healed
+                            if healed:
+                                await _emit(
+                                    on_event, run_id,
+                                    type="step_healed", step_index=i, step_type=step.type,
+                                    data={"command": healed},
+                                )
+                            else:
+                                await _emit(on_event, run_id, type="step_succeeded", step_index=i, step_type=step.type)
+
+                    except Exception as exc:
+                        logger.warning("Step %d failed: %s", i, exc)
+                        await _emit(
+                            on_event, run_id,
+                            type="step_failed", step_index=i, step_type=step.type,
+                            data={"error": str(exc)},
+                        )
+                        raise
+
+                logger.info("Workflow complete.")
+                await _emit(on_event, run_id, type="run_completed", data={"extracts": extract_results})
+                await bu_session.stop()
+            except Exception as exc:
+                logger.warning("Workflow failed: %s", exc)
+                await _emit(on_event, run_id, type="run_failed", data={"error": str(exc)})
+                raise
     finally:
         proc.terminate()
         proc.wait()

@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Waypoint Recorder",
+  "version": "0.1.0",
+  "description": "Record browser workflows and import them into Waypoint.",
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Waypoint Recorder"
+  },
+  "options_page": "options.html"
+}
