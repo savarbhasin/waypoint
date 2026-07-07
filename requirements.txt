@@ -1,6 +1,6 @@
 playwright
 browser-use
-anthropic
+openai
 python-dotenv
 pydantic
 fastapi

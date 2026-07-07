@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from typing import Any, Literal, Optional
 
@@ -36,12 +35,3 @@ class Workflow(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
     parameters: list[str] = []
     steps: list[WorkflowStep] = []
-
-    def save(self, path: str) -> None:
-        with open(path, "w") as f:
-            json.dump(self.model_dump(exclude_none=True, exclude_defaults=True), f, indent=2)
-
-    @classmethod
-    def load(cls, path: str) -> Workflow:
-        with open(path) as f:
-            return cls.model_validate(json.load(f))

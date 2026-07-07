@@ -1,10 +1,70 @@
-# workflows
+# Waypoint
 
-AI-powered browser workflow recorder, enricher, and runner built on Playwright and browser-use.
+Browser automation that records once and replays reliably — with AI fallback when pages change.
 
-## What it does
+Record a workflow in the browser via the Chrome extension, enrich it with parameters and instructions in the web studio, then run it on demand. Playwright executes each step deterministically; when a locator breaks, a browser-use agent heals that step and the fix is saved for the next run.
 
-Record a browser workflow once (manually or via AI agent), enrich it with parameters and instructions, then replay it deterministically — with self-healing selectors when pages change.
+## What you can use it for
+
+- **Regression testing** — replay critical flows after every deploy without maintaining brittle Selenium suites
+- **Back-office automation** — sync data between CRMs, spreadsheets, and internal admin tools
+- **Recurring reports** — pull the same numbers from multiple dashboards on a schedule
+- **Account & environment setup** — provision and configure environments the same way every time
+
+## Quick start
+
+### 1. Python (worker)
+
+```bash
+pip install -r requirements.txt
+playwright install chromium
+
+# API key for extraction and AI fallback
+export OPENAI_API_KEY=...
+```
+
+### 2. Database (for the web studio)
+
+```bash
+docker compose up -d postgres
+```
+
+### 3. Web studio
+
+```bash
+cd frontend
+cp .env.local.example .env.local   # fill in auth + DB + API keys
+npm install
+npm run db:migrate
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Sign in with Google or GitHub (configure OAuth in `.env.local`).
+
+### 4. Run worker (required for web-triggered runs)
+
+The frontend starts runs via a FastAPI worker that executes workflows headlessly and streams events back.
+
+```bash
+uvicorn src.worker.app:app --host 0.0.0.0 --port 8787
+```
+
+Set `WORKER_URL=http://localhost:8787` in `frontend/.env.local` (default).
+
+## Web studio
+
+After sign-in, the app opens to a tabbed dashboard:
+
+| Tab | Purpose |
+|---|---|
+| **Dashboard** | Live status — running workflows, recent failures, activity trend |
+| **Workflows** | Full workflow list with search, sort, and health stats |
+| **Runs** | Cross-workflow run history with filters and expandable event logs |
+| **Analytics** | 30/90-day trends, success rates, and per-workflow reliability |
+
+Workflow detail (`/w/{id}`) includes a step editor, live browser view during runs, and per-workflow run history.
+
+**Chrome extension** — record workflows in the browser and import them via API token (`/settings/tokens`). See `extension/`.
 
 ## Architecture
 
@@ -12,89 +72,51 @@ Record a browser workflow once (manually or via AI agent), enrich it with parame
 record → enrich → run
 ```
 
-**Record** — Captures browser interactions via `capture.js` injected into every page. Tracks clicks, fills, selects, scrolls, and navigations. AI recording mode uses a browser-use agent that drives the browser and returns a structured, deduplicated step list.
+**Record** — the Chrome extension (`extension/`) captures clicks, fills, selects, and navigations as Playwright locator expressions while you perform the task in a real browser.
 
-**Enrich** — Sends the raw workflow JSON to OpenAI with a reasoning pass: rewrites instructions, extracts `{param}` tokens, sets `skip_command` on dynamic locators.
+**Enrich** — on import, the web app runs TypeScript enrichment (`frontend/lib/enrichment.ts`): OpenAI rewrites step instructions, extracts `{param}` tokens, and marks dynamic locators with `skip_command` so they route to the AI healer instead of brittle retries.
 
-**Run** — Executes steps deterministically with Playwright. On failure, hands off to a browser-use agent which completes the action and returns a healed selector. The healed selector is patched back into the workflow JSON so future runs cost $0 on that step again.
+**Run** — the FastAPI worker receives workflow JSON over HTTP and Playwright executes each recorded command. On failure after `max_retries`, a browser-use agent takes over, completes the action, and returns a healed locator written back into the workflow.
 
-## Setup
+### Self-healing
 
-```bash
-pip install -r requirements.txt
-cp .env.example .env  # add OPENAI_API_KEY, ANTHROPIC_API_KEY
-```
+Healed steps surface in amber on the run timeline. The patched locator is persisted in the workflow JSON so future runs use it directly — no repeated AI cost for that step.
 
-## Usage
+### Extraction
 
-```bash
-# Record a workflow manually (opens Chrome)
-python src/main.py record --output workflows/my_workflow.json --name my_workflow
-
-# Enrich a recorded workflow
-python src/main.py process workflows/my_workflow.json
-
-# Run a workflow
-python src/main.py run workflows/my_workflow.json --param username=jdoe --param password=secret
-
-# Run headlessly
-python src/main.py run workflows/my_workflow.json --headless
-```
-
-## Auto Pipeline
-
-`auto_pipeline/` is a fully automated record → enrich → extract pipeline for a target site.
-
-```bash
-python -m auto_pipeline.pipeline
-```
-
-Stages:
-1. **AI Recording** — browser-use agent drives the browser, returns a minimal structured step list via `output_model`
-2. **Enrichment** — OpenAI rewrites and parameterizes the workflow
-3. **Extractor Generation** — LLM generates CSS selectors for each extraction field; selectors are tested on the live page and stored in the workflow (no code generation, no `exec()`)
-
-## Extraction
-
-Three modes, selected per step via `method`:
-
-| Method | How it works | When to use |
+| Method | How | When |
 |---|---|---|
-| `selectors` | CSS selectors stored in workflow, evaluated via Playwright | Auto-generated; language-agnostic; $0/run |
-| `screenshot` | Claude vision on a page screenshot | Dynamic/visual content |
-| `html` | Claude over raw page HTML | Text-heavy pages |
+| `selectors` | CSS selectors in workflow JSON, evaluated via Playwright | Auto-generated; $0/run |
+| `screenshot` | OpenAI vision on page screenshot | Dynamic/visual content |
+| `html` | OpenAI over raw page HTML | Text-heavy pages |
 
-## Self-healing
+### Step types
 
-When a Playwright step fails after `max_retries`, a browser-use agent takes over with `output_model=HealedSelector`. The agent completes the action and returns the Playwright locator it used. That locator is written back into the workflow JSON immediately — the next run uses it directly.
-
-## Workflow step types
-
-`navigate` `click` `fill` `select` `scroll` `wait` `ai` `extract`
+`navigate` · `click` · `fill` · `select` · `scroll` · `wait` · `ai` · `extract`
 
 ## Project structure
 
 ```
 src/
-  main.py          — CLI entry point
-  models.py        — Workflow, WorkflowStep (Pydantic)
-  recorder.py      — Human recording via capture.js
-  runner.py        — Workflow execution + self-healing
-  extractor.py     — Extraction (selectors / code / LLM)
-  ai/
-    openai.py      — OpenAI client (enrichment, selector gen)
-    anthropic.py   — Anthropic client (vision extraction)
-  utils/           — Browser helpers, param resolution, locators
-  scripts/
-    capture.js     — Injected into pages to capture browser events
-  prompts/
-    enrich_workflow.py
+  models.py          Workflow, WorkflowStep (Pydantic)
+  runner.py          Workflow execution + self-healing
+  extractor.py       Extraction (selectors / code / LLM)
+  worker/            FastAPI run worker (entry point)
+  ai/                OpenAI client
+  utils/             Browser helpers, locators, extraction utilities
 
-auto_pipeline/
-  pipeline.py      — Orchestrator (record → enrich → extract)
-  record.py        — AI agent recording with structured output
-  enrich.py        — Workflow enrichment
-  extractor_gen.py — CSS selector generation
-  config.py        — Constants, prompts, helpers
-  runner.py        — Scheduled recurring execution
+frontend/
+  app/               Next.js 15 app (landing, dashboard, workflows, runs, analytics)
+  components/        UI components
+  lib/               Auth, DB (Drizzle/Postgres), runs API, enrichment, analytics
+  drizzle/           Database migrations
+
+extension/           Chrome extension for workflow recording and import
+workflows/           Workflow JSON files (local dev data)
 ```
+
+## Stack
+
+**Python** — Playwright, browser-use, FastAPI, Pydantic, OpenAI
+
+**Web** — Next.js 15, React 19, Tailwind CSS 4, Drizzle ORM, Postgres, better-auth (Google/GitHub OAuth)

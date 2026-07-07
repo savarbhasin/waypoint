@@ -23,7 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Waypoint — browser workflow studio",
-  description: "Inspect, edit, and preview browser automation workflows from the record → process → run pipeline.",
+  description: "Record, run, and self-heal browser automation workflows.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
