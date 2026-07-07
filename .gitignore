@@ -7,3 +7,4 @@ test_auto_pipeline.py
 extractors/
 workflows/*.json
 auto_pipeline/
+workflows/
